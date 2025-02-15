@@ -29,20 +29,24 @@ function vmexec(opc)
       local val = opc[pc + 2]
       registers[reg_index] = val
       pc = pc + 3
+    -- At MUL, MOVE and ADD, if the register at the index is not declared,
+    -- its value at the operation will be zero
     elseif (opc[pc] == MOVE) then
       local reg_index1 = opc[pc + 1]
       local reg_index2 = opc[pc + 2]
-      registers[reg_index1] = registers[reg_index2]
+      registers[reg_index1] = registers[reg_index2] == nil and 0 or registers[reg_index2]
       pc = pc + 3
     elseif (opc[pc] == MUL) then
       local reg_index = opc[pc + 1]
       local factor = opc[pc + 2]
-      registers[reg_index] = registers[reg_index] * factor
+      local left_hand = registers[reg_index] == nil and 0 or registers[reg_index]
+      registers[reg_index] = left_hand * factor
       pc = pc + 3
     elseif (opc[pc] == ADD) then
       local reg_index = opc[pc + 1]
       local summand = opc[pc + 2]
-      registers[reg_index] = registers[reg_index] + summand
+      local left_hand = registers[reg_index] == nil and 0 or registers[reg_index]
+      registers[reg_index] = left_hand + summand
       pc = pc + 3
     elseif (opc[pc] == HALT) then
        return registers
@@ -101,11 +105,6 @@ function assemble(file)
     local line = lines[pc]
     local operation, param1, param2 = parse_line(line)
     if (operation == _MOVE) then
-      if (not declared_registers[param2]) then
-        print("register not declared, line "..pc)
-        return nil
-      end
-      
       table.insert(instructions, MOVE)
       table.insert(instructions, param1)
       table.insert(instructions, param2)
@@ -114,11 +113,6 @@ function assemble(file)
       end
       
     elseif (operation == _ADD) then
-      if (not declared_registers[param1]) then
-        print("register not declared, line "..pc)
-        return nil
-      end
-      
       table.insert(instructions, ADD)
       table.insert(instructions, param1)
       table.insert(instructions, param2)
@@ -128,11 +122,6 @@ function assemble(file)
       table.insert(instructions, param2)
       declared_registers[param1] = true
     elseif (operation == _MUL) then
-      if (not declared_registers[param1]) then
-        print("register not declared, line "..pc)
-        return nil
-      end
-      
       table.insert(instructions, MUL)
       table.insert(instructions, param1)
       table.insert(instructions, param2)
